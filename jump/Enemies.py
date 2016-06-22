@@ -24,6 +24,9 @@ class SquishyThing(Entity.Entity):
         sqsnd.play()
 class Laser(Entity.Entity):
     img=Img.img2("Laser")
+    def __init__(self,x,y,d):
+        self.place(x,y)
+        self.d=d
     def update(self,world,events):
-        if not self.move(-1,0,world):
+        if not self.move(self.d,0,world):
             world.dest_tent(self)

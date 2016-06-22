@@ -12,4 +12,7 @@ class Air(Terrain):
     solid=False
 class Ground(Terrain):
     img=Img.img2("Ice")
+class Background(Terrain):
+    img=Img.img2("BackIce")
+    solid=False
 terrlist=[Air(),Ground()]

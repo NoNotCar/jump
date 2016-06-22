@@ -15,7 +15,7 @@ import Entity
 import sys
 e=enumerate
 keyconv=[[pygame.K_w,(0,-1)],[pygame.K_a,(-1,0)],[pygame.K_s,(0,1)],[pygame.K_d,(1,0)]]
-editorobjs=[Object.GoalBlock,Object.GunBlock]
+editorobjs=[Object.GoalBlock,Object.GunBlock,Object.FGunBlock,Object.SquishySpawner]
 editorents=[Player.Player,Enemies.SquishyThing]
 EDITORLIST = Terrain.terrlist[1:] + editorobjs + editorents
 class Scroller(object):
@@ -55,8 +55,20 @@ class Scroller(object):
                 world.save()
                 sys.exit()
             if not self.moving and keys[pygame.K_SPACE]:
-                if not world.eworld[self.x][self.y]:
-                    world.eworld[self.x][self.y]=self.ex+1
+                if pygame.key.get_mods()&pygame.KMOD_LCTRL:
+                    if not world.eworld[self.x][self.y]:
+                        poss=[(self.x,self.y)]
+                        while poss:
+                            p=poss.pop(0)
+                            if not world.eworld[p[0]][p[1]]:
+                                world.eworld[p[0]][p[1]]=self.ex+1
+                                for dx,dy in [[0,1],[1,0],[0,-1],[-1,0]]:
+                                    if world.inworld(p[0]+dx,p[1]+dy):
+                                        poss.append((p[0]+dx,p[1]+dy))
+
+                else:
+                    if not world.eworld[self.x][self.y]:
+                        world.eworld[self.x][self.y]=self.ex+1
             elif not self.moving and keys[pygame.K_LSHIFT]:
                 world.edestroy(self.x,self.y)
             for k,d in keyconv:
@@ -81,23 +93,26 @@ class Scroller(object):
                     self.moving=True
 class World(object):
     done=False
-    def __init__(self,edit,level):
+    def __init__(self,edit,level,lvlsize):
         self.guitorun=None
-        self.objs=[[None]*15 for n in range(30)]
         self.edit=edit
         self.ents=[]
         if edit:
             self.ents=[Scroller()]
-            self.size=(30,15)
+            self.size=lvlsize
+            s=self.size
             self.player=self.ents[0]
-            self.eworld=[[0]*15 for n in range(30)]
-            self.terr=[[0]*15 for n in range(30)]
+            self.eworld=[[0]*s[1] for n in range(s[0])]
+            self.terr=[[0]*s[1] for n in range(s[0])]
+            self.objs=[[None]*s[1] for n in range(s[0])]
         else:
             savfile=open(Img.np("lvls/%s-%s.sav" % tuple(level)))
             savr = savfile.readlines()
-            self.size=(30,15)
+            self.size=(len(savr)-1,len(savr[1].split()))
+            s=self.size
             self.fltext = savr[0][:-1]
-            self.terr=[[0]*15 for n in range(30)]
+            self.terr=[[0]*s[1] for n in range(s[0])]
+            self.objs=[[None]*s[1] for n in range(s[0])]
             del savr[0]
             for x,row in enumerate(savr):
                 for y,n in enumerate(row.split()):

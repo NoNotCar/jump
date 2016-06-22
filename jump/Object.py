@@ -29,10 +29,32 @@ class GunBlock(Object):
     fimg=Img.img2("GunBlockFire")
     t=0
     s="GuB"
+    d=-1
     def update(self,world):
         if self.t==4:
             self.t=0
-            world.spawn_ent(Enemies.Laser(self.x,self.y))
+            world.spawn_ent(Enemies.Laser(self.x,self.y,self.d))
+        else:
+            self.t+=1
+    def get_img(self,world):
+        if self.t==4:
+            return self.fimg
+        return self.img
+class FGunBlock(GunBlock):
+    img=Img.hflip(GunBlock.img)
+    fimg=Img.hflip(GunBlock.fimg)
+    s="GuBF"
+    d=1
+class SquishySpawner(Object):
+    img=Img.img2("SquishySpawner")
+    fimg=Img.img2("SquishySpawnerActive")
+    t=0
+    s="SqS"
+    def update(self,world):
+        if self.t==4:
+            self.t=0
+            if world.is_empty(self.x,self.y-1):
+                world.spawn_ent(Enemies.SquishyThing(self.x,self.y-1))
         else:
             self.t+=1
     def get_img(self,world):
