@@ -36,10 +36,15 @@ def imgstrip(fil):
     for n in range(img.get_width() // h):
         imgs.append(pygame.transform.scale(img.subsurface(pygame.Rect(n * h, 0, h, h)), (h*2, h*2)).convert_alpha())
     return imgs
+def imgrot(i):
+    imgs=[i]
+    for n in range(3):
+        imgs.append(pygame.transform.rotate(i,-90*n-90))
+    return imgs
 
 
 def musplay(fil):
-    pygame.mixer.music.load(np(loc + fil))
+    pygame.mixer.music.load(np(loc+"Music/" + fil+".ogg"))
     pygame.mixer.music.play(-1)
 
 
@@ -62,5 +67,10 @@ def sndget(fil):
 
 def hflip(img):
     return pygame.transform.flip(img,1,0)
+def gradback(t,b):
+    back=pygame.Surface((480,480))
+    for n in range(480):
+        pygame.draw.line(back,[(t[x]*(480-n)+b[x]*n)//480 for x in range(3)],(0,n),(480,n),1)
+    return back
 
 blank32=img2("Blank")

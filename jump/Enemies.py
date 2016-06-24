@@ -30,3 +30,24 @@ class Laser(Entity.Entity):
     def update(self,world,events):
         if not self.move(self.d,0,world):
             world.dest_tent(self)
+class FireBall(Entity.Entity):
+    dx=1
+    dy=-1
+    img=Img.img2("Fireball")
+    imgs=Img.imgrot(img)
+    solid=True
+    s="FB"
+    dconv=[(1,-1),(1,1),(-1,1),(-1,-1)]
+    def get_img(self):
+        return self.imgs[self.dconv.index((self.dx,self.dy))]
+    def update(self, world, events):
+        tx=self.x+self.dx
+        ty=self.y+self.dy
+        if not world.is_clear(tx,self.y,self):
+            self.dx*=-1
+        if not world.is_clear(self.x,ty,self):
+            self.dy*=-1
+        self.move(self.dx,self.dy,world)
+    def squish(self, player, world):
+        world.dest_tent(self)
+        sqsnd.play()

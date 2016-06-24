@@ -11,7 +11,7 @@ class Terrain(object):
 class Air(Terrain):
     solid=False
 class Ground(Terrain):
-    img=Img.img2("Ice")
+    tex="g"
 class Background(Terrain):
     img=Img.img2("BackIce")
     solid=False

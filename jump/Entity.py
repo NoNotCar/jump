@@ -43,6 +43,7 @@ class Entity(object):
     def move(self,dx,dy,world):
         tx=self.x+dx
         ty=self.y+dy
+        gents=world.get_ents(tx,ty)
         if ty>world.size[1]:
             world.ents.remove(self)
             if world.player is self:

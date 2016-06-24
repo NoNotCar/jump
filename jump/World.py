@@ -16,7 +16,7 @@ import sys
 e=enumerate
 keyconv=[[pygame.K_w,(0,-1)],[pygame.K_a,(-1,0)],[pygame.K_s,(0,1)],[pygame.K_d,(1,0)]]
 editorobjs=[Object.GoalBlock,Object.GunBlock,Object.FGunBlock,Object.SquishySpawner]
-editorents=[Player.Player,Enemies.SquishyThing]
+editorents=[Player.Player,Enemies.SquishyThing,Enemies.FireBall]
 EDITORLIST = Terrain.terrlist[1:] + editorobjs + editorents
 class Scroller(object):
     solid=False

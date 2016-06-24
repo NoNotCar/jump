@@ -7,7 +7,7 @@ import sys
 import pygame
 pygame.init()
 edit=0
-lvlsize=(30,40)
+lvlsize=(40,20)
 if edit:
     ssize=(480,512)
 else:
@@ -15,6 +15,8 @@ else:
 screen=pygame.display.set_mode(ssize)
 import Img
 import World
+import Worlds
+import Terrain
 clock=pygame.time.Clock()
 level=[1,1]
 pdf = pygame.font.get_default_font()
@@ -23,6 +25,14 @@ sfont=pygame.font.Font(pdf,20)
 bfont=pygame.font.Font(pdf,32)
 pygame.event.pump()
 while True:
+    if level[1]==8:
+        world=Worlds.castle
+    else:
+        world=Worlds.worlds[level[0]-1]
+    back=Img.gradback(*world[1])
+    for t in Terrain.terrlist[1:]:
+        t.img=world[0][t.tex]
+    Img.musplay(world[2])
     try:
         w=World.World(edit,level,lvlsize)
     except IOError:
@@ -42,7 +52,7 @@ while True:
         for event in events:
             if event.type==pygame.QUIT:
                 sys.exit()
-        screen.fill((200,255,255))
+        screen.blit(back,(0,0))
         if w.edit:
             w.eup(events)
         else:
