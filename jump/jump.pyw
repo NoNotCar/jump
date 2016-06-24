@@ -61,4 +61,7 @@ while True:
         pygame.display.flip()
         clock.tick(60)
     if w.done:
-        level[1]+=1
+        if level[1]==8:
+            level=[level[0]+1,1]
+        else:
+            level[1]+=1

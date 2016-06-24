@@ -6,17 +6,19 @@ Created on 26 Aug 2015
 import sys
 import Img
 import Enemies
-class Object(object):
+import Entity
+class Object(Entity.Entity):
     img=Img.blank32
-    solid=True
+    solid=2
+    dangerous = False
     def __init__(self,x,y):
         self.x=x
         self.y=y
-    def bash(self,world):
-        pass
     def get_img(self,world):
         return self.img
-    def update(self,world):
+    def update(self,world,events):
+        pass
+    def mupdate(self,world):
         pass
 class GoalBlock(Object):
     img=Img.img2("GoalBlock")
@@ -30,10 +32,13 @@ class GunBlock(Object):
     t=0
     s="GuB"
     d=-1
-    def update(self,world):
+    def update(self,world,events):
         if self.t==4:
             self.t=0
-            world.spawn_ent(Enemies.Laser(self.x,self.y,self.d))
+        elif self.t==3:
+            world.spawn(Enemies.Laser(self.x,self.y,self.d))
+            world.set_front(self)
+            self.t=4
         else:
             self.t+=1
     def get_img(self,world):
@@ -50,11 +55,11 @@ class SquishySpawner(Object):
     fimg=Img.img2("SquishySpawnerActive")
     t=0
     s="SqS"
-    def update(self,world):
+    def update(self,world,events):
         if self.t==4:
             self.t=0
             if world.is_empty(self.x,self.y-1):
-                world.spawn_ent(Enemies.SquishyThing(self.x,self.y-1))
+                world.spawn(Enemies.SquishyThing(self.x,self.y-1))
         else:
             self.t+=1
     def get_img(self,world):

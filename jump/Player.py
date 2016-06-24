@@ -78,19 +78,20 @@ class Player(Entity.Entity):
                         self.move(0, dy, world)
                     world.pdone=True
         self.air=self.in_air(world)
-    def get_img(self):
+    def get_img(self,world):
         if self.dire=="R":
             return self.img if not self.air else self.imgu if self.jump else self.imgd
         return self.fimg if not self.air else self.fimgu if self.jump else self.fimgd
     def bash(self,world):
-        if world.get_obj(self.x,self.y-1):
-            world.get_obj(self.x,self.y-1).bash(world)
+        if world.get_objs(self.x,self.y-1):
+            for o in world.get_objs(self.x,self.y-1):
+                o.bash(world)
     def move(self, dx, dy, world):
         gents=False
         if 0<dy:
-            gents=world.get_ents(self.x+dx,self.y+dy)
-            for gent in gents:
-                gent.squish(self,world)
+            gob=world.get_objs(self.x+dx,self.y+dy)
+            for go in gob:
+                go.squish(self,world)
         if not gents:
             if dy==1:
                 dsound.play()

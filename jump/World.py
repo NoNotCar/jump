@@ -16,7 +16,7 @@ import sys
 e=enumerate
 keyconv=[[pygame.K_w,(0,-1)],[pygame.K_a,(-1,0)],[pygame.K_s,(0,1)],[pygame.K_d,(1,0)]]
 editorobjs=[Object.GoalBlock,Object.GunBlock,Object.FGunBlock,Object.SquishySpawner]
-editorents=[Player.Player,Enemies.SquishyThing,Enemies.FireBall]
+editorents=[Player.Player,Enemies.SquishyThing,Enemies.FireBall,Enemies.SquishyClever]
 EDITORLIST = Terrain.terrlist[1:] + editorobjs + editorents
 class Scroller(object):
     solid=False
@@ -96,15 +96,16 @@ class World(object):
     def __init__(self,edit,level,lvlsize):
         self.guitorun=None
         self.edit=edit
-        self.ents=[]
+        self.olist=[]
         if edit:
-            self.ents=[Scroller()]
             self.size=lvlsize
             s=self.size
-            self.player=self.ents[0]
             self.eworld=[[0]*s[1] for n in range(s[0])]
             self.terr=[[0]*s[1] for n in range(s[0])]
-            self.objs=[[None]*s[1] for n in range(s[0])]
+            self.objs=[[None]*(s[1]+1) for n in range(s[0])]
+            self.oconvert()
+            self.objs[0][0]=[Scroller(0,0)]
+            self.player=self.objs[0][0][0]
         else:
             savfile=open(Img.np("lvls/%s-%s.sav" % tuple(level)))
             savr = savfile.readlines()
@@ -112,7 +113,8 @@ class World(object):
             s=self.size
             self.fltext = savr[0][:-1]
             self.terr=[[0]*s[1] for n in range(s[0])]
-            self.objs=[[None]*s[1] for n in range(s[0])]
+            self.objs=[[None]*(s[1]+1) for n in range(s[0])]
+            self.oconvert()
             del savr[0]
             for x,row in enumerate(savr):
                 for y,n in enumerate(row.split()):
@@ -125,35 +127,38 @@ class World(object):
                         if obj in Terrain.terrlist:
                             self.set_terr(x,y,n)
                         elif obj in editorobjs:
-                            self.spawn_obj(obj(x,y))
+                            self.spawn(obj(x,y))
                         else:
                             if obj==Player.Player:
                                 self.player=obj(x,y)
-                                self.spawn_ent(self.player)
+                                self.spawn(self.player)
                             else:
-                                self.spawn_ent(obj(x,y))
+                                self.spawn(obj(x,y))
         self.complete=False
         self.pdone=False
+    def oconvert(self):
+        for x in range(self.size[0]):
+            for y in range(self.size[1]+1):
+                self.objs[x][y]=[]
     def update(self,events):
         """Update Everything"""
         if not self.pdone:
             self.player.update(self, events)
         elif self.player.moving:
-            self.player.mupdate(self, events)
+            self.player.mupdate(self)
             if not self.player.moving:
                 self.check_kill()
-                for r in self.objs:
-                    for o in r:
-                        if o:
-                            o.update(self)
-                for ent in [e for e in self.ents if e is not self.player]:
-                    ent.update(self,events)
+                for o in [o for o in self.olist if o is not self.player]:
+                    o.update(self,events)
         else:
-            for ent in [e for e in self.ents if e is not self.player]:
-                ent.mupdate(self,events)
-            self.pdone=any([ent.moving for ent in self.ents])
+            for o in [o for o in self.olist if o is not self.player]:
+                o.mupdate(self)
+            self.pdone=any([o.moving for o in self.olist])
             if not self.pdone:
                 self.check_kill()
+                for o in self.olist:
+                    if o.y==self.size[1]:
+                        self.dest_obj(o)
     def eup(self,events):
         self.player.update(self)
         self.player.mupdate()
@@ -178,80 +183,57 @@ class World(object):
             for y,tile in e(row):
                 if abs(x-sx)<9 and abs(y-sy)<9:
                     screen.blit(Terrain.terrlist[tile].img,(x*32-asx,y*32-asy))
-        for y in xrange(self.size[1]):
+        for y in xrange(self.size[1]+1):
             for x in xrange(self.size[0]):
-                obj = self.get_obj(x, y)
-                if obj and abs(x-sx)<9 and abs(y-sy)<9:
-                    screen.blit(obj.get_img(self),(x*32-asx,y*32-asy))
-        #Entity Rendering
-        for ent in [en for en in self.ents if not en.hidden]:
-            if abs(ent.x-sx)<9 and abs(ent.y-sy)<9:
-                screen.blit(ent.get_img(),(ent.x*32-asx+int(round(ent.xoff)),ent.y*32-asy+int(round(ent.yoff))))
+                objs = self.get_objs(x, y)
+                if abs(x-sx)<9 and abs(y-sy)<9:
+                    for o in objs:
+                        screen.blit(o.get_img(self),(x*32-asx+int(round(o.xoff)),y*32-asy+int(round(o.yoff))))
         if self.edit:
             pygame.draw.rect(screen,(200,200,200),pygame.Rect(0,480,480,32))
             for n,x in enumerate(EDITORLIST):
                 screen.blit(x.img,(n*32,480))
             screen.blit(self.player.img,(self.player.ex*32,480))
-    def get_obj(self,x,y):
-        """Get object from coordinates. If the coordinates are not in the world, returns None"""
-        if self.inworld(x,y):
+    def get_objs(self,x,y):
+        """Get objects from coordinates. If the coordinates are not in the world, returns None"""
+        if self.inworldv(x,y):
             return self.objs[x][y]
         return None
-    def get_ent(self,x,y):
-        """Get an entity from coordinates. If there are no entities at the location, returns None"""
-        for ent in self.ents:
-            if (ent.x,ent.y)==(x,y):
-                return ent
-        return None
-    def get_ents(self,x,y):
-        """Get all entities at the coordinates"""
-        ents=[]
-        for ent in self.ents:
-            if (ent.x,ent.y)==(x,y):
-                ents.append(ent)
-        return ents
-    def dest_ent(self,x,y):
-        """Destroy all entities at the coordinates"""
-        for ent in self.ents:
-            if (ent.x,ent.y)==(x,y):
-                self.ents.remove(ent)
-    def dest_tent(self,ent):
+    def dest_objs(self,x,y):
+        """Destroy all objects at the coordinates"""
+        self.objs[x][y]=[]
+    def dest_obj(self,obj,poverride=False):
         """Destroy this entity"""
-        self.ents.remove(ent)
-    def get_objname(self,x,y):
-        """Get object name from coordinates. If the coordinates are not in the world, returns None"""
-        getob=self.get_obj(x, y)
-        if getob:
-            return getob.name
-        return None
+        self.objs[obj.x][obj.y].remove(obj)
+        self.olist.remove(obj)
+        if obj is self.player and not poverride:
+            self.complete=True
     def inworld(self,x,y):
         """Is the coordinate in the world?"""
         return 0<=x<self.size[0] and 0<=y<self.size[1]
-    def inworldent(self,x,y):
+    def inworldv(self,x,y):
         """Is the coordinate in the world or off the bottom?"""
         return 0<=x<self.size[0] and 0<=y
     def ranpos(self):
         """return a random coordinate"""
         return randint(0,self.size[0]-1),randint(0,self.size[1]-1)
-    def dest_obj(self,x,y):
-        """Destroy the object at the coordinates"""
-        self.objs[x][y]=None
-    def spawn_obj(self,obj):
+    def spawn(self,obj):
         """Create an object at its x,y position"""
-        self.objs[obj.x][obj.y]=obj
-    def spawn_ent(self,ent):
-        """Does what it says on the tin"""
-        self.ents.append(ent)
+        self.objs[obj.x][obj.y].append(obj)
+        self.olist.append(obj)
     def is_empty(self,x,y):
-        """If there are no objects or solid entities at the location"""
-        return not self.get_terr(x,y).solid and self.get_obj(x, y)==None and not any([e.solid for e in self.get_ents(x,y)])
-    def is_clear(self,x,y,ent):
-        """If an entity can enter this location"""
+        """If there is nothing at the location"""
+        return not self.get_terr(x,y).solid and self.get_objs(x, y)==[]
+    def is_clear(self,x,y,obj):
+        """If an object can enter this location"""
         if not self.inworld(x, y):
-            if self.inworldent(x,y):
+            if self.inworldv(x,y):
                 return True
             return False
-        return not any([self.get_terr(x, y).solid,(self.get_obj(x, y) and self.get_obj(x, y).solid),(self.get_ent(x,y) and self.get_ent(x,y).dangerous==ent.dangerous)])
+        for o in self.get_objs(x,y):
+            if o.solid==2 or (o.solid and o.dangerous==obj.dangerous):
+                return False
+        return not self.get_terr(x, y).solid
     def get_terr(self,x,y):
         """Get the terrain object of the location"""
         return Terrain.terrlist[self.get_tid(x, y)]
@@ -263,12 +245,12 @@ class World(object):
         self.terr[x][y]=tid
     def exists(self,obj):
         """Has this object been destroyed?"""
-        return self.get_obj(obj.x, obj.y) is obj
+        return obj in self.get_objs(obj.x, obj.y)
     def run_GUI(self,gui):
         """Run a GUI"""
         self.guitorun=gui
     def check_kill(self):
-        kents=self.get_ents(self.player.x,self.player.y)
+        kents=self.get_objs(self.player.x,self.player.y)
         if any([kent.dangerous for kent in kents]):
             self.complete=True
     def edestroy(self,x,y):
@@ -288,3 +270,12 @@ class World(object):
         for n,e in enumerate(EDITORLIST):
             if n>=len(Terrain.terrlist)-1 and e.s==s:
                 return n+1
+    def move(self,obj,tx,ty):
+        self.dest_obj(obj,True)
+        obj.x=tx
+        obj.y=ty
+        self.spawn(obj)
+    def set_front(self,obj):
+        os=self.get_objs(obj.x,obj.y)
+        os.remove(obj)
+        os.append(obj)
